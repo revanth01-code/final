@@ -82,11 +82,11 @@ const hospitals = [
     status: 'active'
   },
   {
-    name: "Regional Hospital",
+    name: "Samatha Multispeciality Hospital",
     location: {
       latitude: 28.7041,
-      longitude: 77.1025,
-      address: "789 Hospital Road, Rohini, Delhi"
+      longitude: 80.5233059,
+      address: "1-605b, Trunk Road, Mangalagiri, Andhra Pradesh 522503"
     },
     contact: {
       phone: "+91-11-87654321",
@@ -196,16 +196,16 @@ const hospitals = [
 const seedDB = async () => {
   try {
     await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ MongoDB Connected');
+    console.log('MongoDB Connected');
 
     // Clear existing data
     await Hospital.deleteMany({});
     await User.deleteMany({});
-    console.log('🗑️  Cleared existing data');
+    console.log('Cleared existing data');
 
     // Insert hospitals
     const insertedHospitals = await Hospital.insertMany(hospitals);
-    console.log('✅ Seeded hospitals');
+    console.log('Seeded hospitals');
 
     // Create demo users
     const salt = await bcrypt.genSalt(10);
@@ -246,34 +246,34 @@ const seedDB = async () => {
     ];
 
     await User.insertMany(users);
-    console.log('✅ Seeded users');
+    console.log('Seeded users');
 
     console.log(`
-╔═══════════════════════════════════════╗
-║   ✅ Database Seeded Successfully!    ║
-╠═══════════════════════════════════════╣
-║   Hospitals: ${hospitals.length}                       ║
-║   Users: ${users.length}                           ║
-║                                       ║
-║   Demo Credentials:                   ║
-║   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ ║
-║   Paramedic:                          ║
-║   📧 paramedic@demo.com                ║
-║   🔑 password123                      ║
-║                                       ║
-║   Hospital Staff (City General):      ║
-║   📧 hospital1@demo.com                ║
-║   🔑 password123                      ║
-║                                       ║
-║   Hospital Staff (Metro Medical):     ║
-║   📧 hospital2@demo.com                ║
-║   🔑 password123                      ║
-╚═══════════════════════════════════════╝
+
+ Database Seeded Successfully!    
+
+ Hospitals: ${hospitals.length}                       
+   Users: ${users.length}                           
+                                       
+   Demo Credentials:                   
+   
+   Paramedic:                          
+    paramedic@demo.com                
+    password123                      
+                                       
+   Hospital Staff (City General):      
+   hospital1@demo.com               
+   password123                      
+                                       
+   Hospital Staff (Metro Medical):     
+    hospital2@demo.com               
+   password123                      
+
     `);
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Seed error:', error);
+    console.error('Seed error:', error);
     process.exit(1);
   }
 };

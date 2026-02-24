@@ -71,16 +71,19 @@ router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
-    const user = await User.findOne({ email });
+    // Find user (email is stored in lowercase so normalize)
+    const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      // user does not exist in database
+      console.warn(`Login attempt for non-existent email: ${email}`);
+      return res.status(404).json({ error: 'User not found' });
     }
 
     // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
+      console.warn(`Invalid password attempt for user ${email}`);
+      return res.status(401).json({ error: 'Incorrect password' });
     }
 
     // Create JWT token
