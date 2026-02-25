@@ -22,8 +22,8 @@ function Login() {
             const response = await loginAPI({ email: email.toLowerCase(), password });
             const { token, user } = response.data;
 
-            localStorage.setItem('token', token);
-            login(user);
+            // update AuthContext which will store the token correctly
+            login(user, token);
 
             // if paramedic but no ambulance assigned, warn them
             if (user.role === 'paramedic' && !user.ambulanceId) {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSocket } from '../../contexts/SocketContext';
-import { getActiveTracked, getAllHospitals } from '../../services/api';
+import { getAllHospitals } from '../../services/api';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import './ControlRoom.css';
@@ -10,12 +10,10 @@ function ControlRoomDashboard() {
     const { trackedAmbulances: liveAmbulances, alerts, isConnected } = useSocket();
     const [hospitals, setHospitals] = useState([]);
     const [selectedAmbulance, setSelectedAmbulance] = useState(null);
-    const [loading, setLoading] = useState(true);
 
     // Fetch initial data only once
     useEffect(() => {
         const fetchInitialData = async () => {
-            setLoading(true);
             try {
                 // Fetch all hospitals for map markers
                 const hospitalsResponse = await getAllHospitals();
@@ -28,8 +26,6 @@ function ControlRoomDashboard() {
             } catch (error) {
                 console.error('Error fetching initial hospital data:', error);
                 setHospitals([]);
-            } finally {
-                setLoading(false);
             }
         };
 

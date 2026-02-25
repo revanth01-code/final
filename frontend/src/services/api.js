@@ -10,10 +10,19 @@ const api = axios.create({
     }
 });
 
+// helper to pick token corresponding to this tab's role
+const getCurrentRoleToken = () => {
+    const role = sessionStorage.getItem('currentRole');
+    if (role) {
+        return localStorage.getItem(`token_${role}`);
+    }
+    return null;
+};
+
 // Add token to requests automatically
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = getCurrentRoleToken();
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
