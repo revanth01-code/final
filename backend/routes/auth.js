@@ -3,8 +3,10 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Ambulance = require('../models/Ambulance');
 const protect = require('../middleware/auth');
 
+/* registration endpoint disabled for demo builds
 // @route   POST /api/auth/register
 // @desc    Register new user
 // @access  Public
@@ -16,6 +18,18 @@ router.post('/register', async (req, res) => {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists with this email' });
+    }
+
+    let finalAmbulanceId;
+    if (role === 'paramedic') {
+      if (!ambulanceId) {
+        return res.status(400).json({ error: 'Ambulance license plate is required for paramedics.' });
+      }
+      const ambulance = await Ambulance.findOne({ licensePlate: ambulanceId });
+      if (!ambulance) {
+        return res.status(400).json({ error: 'Ambulance with this license plate is not registered.' });
+      }
+      finalAmbulanceId = ambulance._id;
     }
 
     // Hash password
@@ -30,7 +44,7 @@ router.post('/register', async (req, res) => {
       role,
       phone,
       hospitalId: role === 'hospital-staff' ? hospitalId : undefined,
-      ambulanceId: role === 'paramedic' ? ambulanceId : undefined
+      ambulanceId: finalAmbulanceId
     });
 
     // Create JWT token
@@ -62,6 +76,12 @@ router.post('/register', async (req, res) => {
     console.error('Register error:', error);
     res.status(500).json({ error: 'Server error during registration' });
   }
+});
+*/
+
+// simple handler explaining that registration is turned off
+router.post('/register', (req, res) => {
+  res.status(404).json({ error: 'Registration is disabled in demo mode' });
 });
 
 // @route   POST /api/auth/login

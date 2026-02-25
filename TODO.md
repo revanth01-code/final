@@ -43,5 +43,5 @@
   1. Start MongoDB (local or cloud).
   2. `npm install` in both `backend` and `frontend` then `npm run dev` (or `npm start`) respectively.
   3. Frontend expects API at `http://localhost:5000/api` by default; override with `REACT_APP_API_URL`.
-- **Login issues:** invalid credentials usually mean the user does not exist or password is wrong – check seed output or register a new user.
+- **Login issues:** invalid credentials usually mean the user does not exist or password is wrong – check seed output (registration is disabled, use demo accounts listed above).
 - **Troubleshooting:** watch backend logs for `MongoDB Connected` and login attempts; network errors show when the server isn't running or cors misconfigured.

@@ -9,6 +9,12 @@ module.exports = (io) => {
     socket.on('user-connected', (userData) => {
       connectedUsers.set(socket.id, userData);
       console.log(`User connected: ${userData.role} - ${userData.name || userData.hospitalId}`);
+      
+      // Automatically add control room users to their room
+      if (userData.role === 'control-room' || userData.role === 'admin') {
+        socket.join('control-room');
+        console.log(`Control room user ${userData.name} joined room: control-room`);
+      }
     });
 
     // Hospital joins their room
@@ -21,6 +27,12 @@ module.exports = (io) => {
     socket.on('join-ambulance', (ambulanceId) => {
       socket.join(`ambulance-${ambulanceId}`);
       console.log(`Ambulance ${ambulanceId} joined room: ${socket.id}`);
+    });
+    
+    // Control room joins room
+    socket.on('join-control-room', () => {
+        socket.join('control-room');
+        console.log(`User ${socket.id} joined room: control-room`);
     });
 
     // Hospital updates capacity

@@ -270,10 +270,8 @@ class OptimizationService {
     return {
       // Only destination hospital name is exposed (no comparative data)
       destination: {
-        hospitalId: optimalHospital.hospitalId,
-        hospitalName: optimalHospital.hospitalName,
-        address: optimalHospital.prediction?.currentStatus?.address || '',
-        phone: '' // Will be fetched separately if needed
+        hospitalId: optimalHospital.hospitalId
+        // hospitalName and address are intentionally omitted for privacy
       },
       
       // Navigation info for the ambulance

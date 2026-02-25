@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
 
 const RequestSchema = new mongoose.Schema({
-  ambulanceId: {
-    type: String,
+  ambulance: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ambulance',
     required: true
   },
   paramedic: {
@@ -37,6 +38,7 @@ const RequestSchema = new mongoose.Schema({
     symptoms: [String],
     requiredSpecialty: {
       type: String,
+      enum: ['cardiology', 'neurology', 'orthopedics', 'general-surgery', 'trauma', 'pediatrics'],
       required: true
     },
     consciousness: {
@@ -71,9 +73,20 @@ const RequestSchema = new mongoose.Schema({
     enum: ['requested', 'assigned', 'enroute', 'arrived', 'completed', 'cancelled'],
     default: 'requested'
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  navigation: {
+    distance: Number,
+    estimatedTime: Number,
+    routeCoordinates: [[Number]]
+  },
+  tracking: {
+    startedAt: Date,
+    currentLocation: {
+        latitude: Number,
+        longitude: Number
+    },
+    completedAt: Date,
+    finalStats: mongoose.Schema.Types.Mixed,
+    deviationAlerts: [mongoose.Schema.Types.Mixed]
   },
   arrivedAt: Date,
   completedAt: Date

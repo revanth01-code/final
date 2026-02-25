@@ -3,187 +3,39 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const Hospital = require('./models/Hospital');
 const User = require('./models/User');
+const Ambulance = require('./models/Ambulance');
+const Audit = require('./models/Audit');
 
 dotenv.config();
 
 const hospitals = [
   {
-    name: "City General Hospital",
+    name: "Demo Hospital",
     location: {
-      latitude: 28.6139,
+      latitude: 28.6135,
       longitude: 77.2090,
-      address: "123 Main Street, Connaught Place, Delhi"
+      address: "1 Demo Road, Central Demo City"
     },
     contact: {
-      phone: "+91-11-12345678",
-      emergency: "+91-11-12345679"
-    },
-    capacity: {
-      totalBeds: 200,
-      availableBeds: 45,
-      totalICU: 20,
-      availableICU: 3,
-      totalVentilators: 10,
-      availableVentilators: 2
-    },
-    specialists: [
-      { specialty: 'cardiology', available: true, onDuty: ['Dr. Sharma', 'Dr. Patel'] },
-      { specialty: 'neurology', available: false, onDuty: [] },
-      { specialty: 'orthopedics', available: true, onDuty: ['Dr. Kumar'] },
-      { specialty: 'general-surgery', available: true, onDuty: ['Dr. Singh'] }
-    ],
-    equipment: {
-      ctScan: true,
-      mri: true,
-      xray: true,
-      cathLab: true,
-      bloodBank: true,
-      ventilator: true,
-      oxygenSupply: true
-    },
-    currentLoad: 'moderate',
-    status: 'active'
-  },
-  {
-    name: "Metro Medical Center",
-    location: {
-      latitude: 28.5355,
-      longitude: 77.3910,
-      address: "456 Park Avenue, Sector 18, Noida"
-    },
-    contact: {
-      phone: "+91-120-98765432",
-      emergency: "+91-120-98765433"
-    },
-    capacity: {
-      totalBeds: 150,
-      availableBeds: 30,
-      totalICU: 15,
-      availableICU: 1,
-      totalVentilators: 8,
-      availableVentilators: 1
-    },
-    specialists: [
-      { specialty: 'cardiology', available: false, onDuty: [] },
-      { specialty: 'neurology', available: true, onDuty: ['Dr. Mehta'] },
-      { specialty: 'orthopedics', available: true, onDuty: ['Dr. Reddy'] },
-      { specialty: 'trauma', available: true, onDuty: ['Dr. Verma'] }
-    ],
-    equipment: {
-      ctScan: true,
-      mri: false,
-      xray: true,
-      cathLab: false,
-      bloodBank: true,
-      ventilator: true,
-      oxygenSupply: true
-    },
-    currentLoad: 'high',
-    status: 'active'
-  },
-  {
-    name: "Samatha Multispeciality Hospital",
-    location: {
-      latitude: 28.7041,
-      longitude: 80.5233059,
-      address: "1-605b, Trunk Road, Mangalagiri, Andhra Pradesh 522503"
-    },
-    contact: {
-      phone: "+91-11-87654321",
-      emergency: "+91-11-87654322"
-    },
-    capacity: {
-      totalBeds: 250,
-      availableBeds: 60,
-      totalICU: 25,
-      availableICU: 0,
-      totalVentilators: 12,
-      availableVentilators: 0
-    },
-    specialists: [
-      { specialty: 'cardiology', available: true, onDuty: ['Dr. Gupta'] },
-      { specialty: 'neurology', available: true, onDuty: ['Dr. Joshi'] },
-      { specialty: 'orthopedics', available: true, onDuty: ['Dr. Rao'] },
-      { specialty: 'pediatrics', available: true, onDuty: ['Dr. Nair'] }
-    ],
-    equipment: {
-      ctScan: true,
-      mri: true,
-      xray: true,
-      cathLab: true,
-      bloodBank: true,
-      ventilator: true,
-      oxygenSupply: true
-    },
-    currentLoad: 'critical',
-    status: 'active'
-  },
-  {
-    name: "Community Care Center",
-    location: {
-      latitude: 28.4595,
-      longitude: 77.0266,
-      address: "321 Community Lane, Sector 29, Gurgaon"
-    },
-    contact: {
-      phone: "+91-124-55566677",
-      emergency: "+91-124-55566678"
+      phone: "+91-11-00000000",
+      emergency: "+91-11-00000001"
     },
     capacity: {
       totalBeds: 100,
-      availableBeds: 20,
+      availableBeds: 50,
       totalICU: 10,
-      availableICU: 2,
+      availableICU: 5,
       totalVentilators: 5,
-      availableVentilators: 1
+      availableVentilators: 2
     },
     specialists: [
-      { specialty: 'general-surgery', available: true, onDuty: ['Dr. Kapoor'] },
-      { specialty: 'orthopedics', available: false, onDuty: [] },
-      { specialty: 'pediatrics', available: true, onDuty: ['Dr. Sharma'] }
+      { specialty: 'general-surgery', available: true, onDuty: ['Dr. Demo'] }
     ],
     equipment: {
       ctScan: false,
       mri: false,
       xray: true,
       cathLab: false,
-      bloodBank: true,
-      ventilator: true,
-      oxygenSupply: true
-    },
-    currentLoad: 'low',
-    status: 'active'
-  },
-  {
-    name: "Emergency Care Hospital",
-    location: {
-      latitude: 28.6692,
-      longitude: 77.4538,
-      address: "555 Emergency Road, Vaishali, Ghaziabad"
-    },
-    contact: {
-      phone: "+91-120-44455566",
-      emergency: "+91-120-44455567"
-    },
-    capacity: {
-      totalBeds: 180,
-      availableBeds: 50,
-      totalICU: 18,
-      availableICU: 5,
-      totalVentilators: 9,
-      availableVentilators: 3
-    },
-    specialists: [
-      { specialty: 'trauma', available: true, onDuty: ['Dr. Malhotra', 'Dr. Khanna'] },
-      { specialty: 'cardiology', available: true, onDuty: ['Dr. Batra'] },
-      { specialty: 'neurology', available: false, onDuty: [] },
-      { specialty: 'general-surgery', available: true, onDuty: ['Dr. Sethi'] }
-    ],
-    equipment: {
-      ctScan: true,
-      mri: false,
-      xray: true,
-      cathLab: true,
       bloodBank: true,
       ventilator: true,
       oxygenSupply: true
@@ -201,73 +53,130 @@ const seedDB = async () => {
     // Clear existing data
     await Hospital.deleteMany({});
     await User.deleteMany({});
+    await Ambulance.deleteMany({});
+    await Audit.deleteMany({});
     console.log('Cleared existing data');
+
+    // Drop indexes to ensure a clean slate, especially for geo indexes
+    try {
+      await Ambulance.collection.dropIndexes();
+      console.log('Dropped ambulance indexes');
+    } catch (error) {
+      if (error.code === 26) { // IndexNotFound
+        console.log('No ambulance indexes to drop.');
+      } else {
+        throw error;
+      }
+    }
 
     // Insert hospitals
     const insertedHospitals = await Hospital.insertMany(hospitals);
     console.log('Seeded hospitals');
 
-    // Create demo users
+    // Insert ambulances
+    const ambulances = [
+      { licensePlate: "DL01AM1234", status: 'available' },
+      { licensePlate: "DL01AM5678", status: 'available' },
+      { licensePlate: "DL01AM9012", status: 'unavailable' }
+    ];
+    const insertedAmbulances = await Ambulance.insertMany(ambulances);
+    console.log('Seeded ambulances');
+
+    // Create admin and demo users
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('password123', salt);
 
     const users = [
-      {
-        name: "Raj Kumar",
+      // Admin user removed for demo
+    ];
+
+    // add demo paramedic, hospital staff and control-room users once hospitals/ambulances are inserted
+    if (insertedAmbulances && insertedAmbulances.length > 0) {
+      users.push({
+        name: "Demo Paramedic",
         email: "paramedic@demo.com",
         password: hashedPassword,
         role: "paramedic",
-        phone: "+91-9876543210",
-        ambulanceId: "AMB-DL-001"
-      },
-      {
-        name: "Priya Sharma",
-        email: "hospital1@demo.com",
+        phone: "+91-1234567890",
+        ambulanceId: insertedAmbulances[0]._id
+      });
+      console.log(`Seed: assigned ambulance ${insertedAmbulances[0].licensePlate} to Demo Paramedic`);
+    }
+    if (insertedHospitals && insertedHospitals.length > 0) {
+      users.push({
+        name: "Demo HospitalStaff",
+        email: "hospital@demo.com",
         password: hashedPassword,
         role: "hospital-staff",
-        phone: "+91-9876543211",
+        phone: "+91-1098765432",
         hospitalId: insertedHospitals[0]._id
-      },
-      {
-        name: "Amit Verma",
-        email: "hospital2@demo.com",
-        password: hashedPassword,
-        role: "hospital-staff",
-        phone: "+91-9876543212",
-        hospitalId: insertedHospitals[1]._id
-      },
-      {
-        name: "Admin User",
-        email: "admin@demo.com",
-        password: hashedPassword,
-        role: "admin",
-        phone: "+91-9876543213"
-      }
-    ];
+      });
+    }
+    users.push({
+      name: "Demo Control",
+      email: "control@demo.com",
+      password: hashedPassword,
+      role: "control-room",
+      phone: "+91-9988776655"
+    });
 
     await User.insertMany(users);
-    console.log('Seeded users');
+    console.log('Seeded users:', users.map(u=>u.email).join(', '));
+
+    // insert a few sample requests so dashboards have something to display
+    try {
+      const Request = require('./models/Request');
+      const demoRequests = [
+        {
+          ambulance: insertedAmbulances[0]._id,
+          paramedic: { name: 'Demo Paramedic', phone: '+91-1234567890' },
+          patient: {
+            age: 60,
+            gender: 'male',
+            condition: 'chest pain',
+            severity: 'severe',
+            vitals: { heartRate: 110, bloodPressure: '140/90', oxygenLevel: 94, temperature: 98.6 },
+            symptoms: ['pain', 'nausea'],
+            requiredSpecialty: 'cardiology',
+            consciousness: 'alert'
+          },
+          location: { latitude: 28.6135, longitude: 77.2090 },
+          status: 'requested'
+        },
+        {
+          ambulance: insertedAmbulances[1]._id,
+          paramedic: { name: 'Demo Paramedic 2', phone: '+91-1122334455' },
+          patient: {
+            age: 25,
+            gender: 'female',
+            condition: 'broken leg',
+            severity: 'moderate',
+            vitals: { heartRate: 88, bloodPressure: '120/80', oxygenLevel: 98, temperature: 98.4 },
+            symptoms: ['pain', 'swelling'],
+            requiredSpecialty: 'orthopedics',
+            consciousness: 'alert'
+          },
+          location: { latitude: 28.6136, longitude: 77.2085 },
+          status: 'requested'
+        }
+      ];
+      await Request.insertMany(demoRequests);
+      console.log('Seeded demo requests');
+    } catch (reqError) {
+      console.error('Error seeding requests:', reqError);
+    }
 
     console.log(`
 
  Database Seeded Successfully!    
 
- Hospitals: ${hospitals.length}                       
-   Users: ${users.length}                           
+ Hospitals: ${hospitals.length}
+ Ambulances: ${ambulances.length}
+   Users: ${users.length} (Admin only)                           
                                        
-   Demo Credentials:                   
-   
-   Paramedic:                          
-    paramedic@demo.com                
-    password123                      
-                                       
-   Hospital Staff (City General):      
-   hospital1@demo.com               
-   password123                      
-                                       
-   Hospital Staff (Metro Medical):     
-    hospital2@demo.com               
-   password123                      
+   Admin Credentials:                  
+   Email: admin@demo.com                
+   Pass:  password123                      
 
     `);
 

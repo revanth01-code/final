@@ -10,6 +10,7 @@
  */
 
 const { trafficService } = require('./trafficService');
+const { getIO } = require('../socket/socketInstance');
 
 class GPSMonitoringService {
   constructor() {
@@ -31,24 +32,29 @@ class GPSMonitoringService {
    * Start tracking an ambulance
    */
   startTracking(requestId, ambulanceId, origin, destination, recommendedRoute) {
+    // ensure consistent key type (string)
+    const key = requestId.toString();
     const trackingSession = {
-      requestId,
+      requestId: key,
       ambulanceId,
       origin,
       destination,
       recommendedRoute,
       startTime: new Date(),
       lastUpdate: new Date(),
-      locationHistory: [],
+      locationHistory: [{ ...origin, timestamp: new Date() }],
       deviationAlerts: [],
       status: 'tracking',
       expectedArrival: this.calculateExpectedArrival(origin, destination)
     };
     
-    this.activeTrackedAmbulances.set(requestId, trackingSession);
+    this.activeTrackedAmbulances.set(key, trackingSession);
     
     console.log(`📍 Started GPS tracking for ambulance ${ambulanceId} (Request: ${requestId})`);
     
+    // Notify control room of new trip
+    getIO().to('control-room').emit('trip_started', this.getTrackingStatus(requestId));
+
     return trackingSession;
   }
 
@@ -56,7 +62,8 @@ class GPSMonitoringService {
    * Update ambulance location
    */
   updateLocation(requestId, location) {
-    const session = this.activeTrackedAmbulances.get(requestId);
+    const key = requestId.toString();
+    const session = this.activeTrackedAmbulances.get(key);
     
     if (!session) {
       console.warn(`No active tracking session for request ${requestId}`);
@@ -83,7 +90,11 @@ class GPSMonitoringService {
     const deviationCheck = this.checkRouteDeviation(session, location);
     
     if (deviationCheck.isDeviating) {
-      this.handleDeviation(session, deviationCheck);
+      // Only create a new alert if one isn't already active for the same reason
+      const hasExistingAlert = session.deviationAlerts.some(a => !a.resolved);
+      if (!hasExistingAlert) {
+         this.handleDeviation(session, deviationCheck);
+      }
     }
     
     // Update expected arrival time
@@ -91,6 +102,9 @@ class GPSMonitoringService {
       location,
       session.destination
     );
+
+    // Emit location update to control room
+    getIO().to('control-room').emit('ambulance_location_update', this.getTrackingStatus(requestId));
     
     return {
       status: 'tracking',
@@ -212,7 +226,7 @@ class GPSMonitoringService {
   }
 
   /**
-   * Handle deviation - create alert
+   * Handle deviation - create alert and emit event
    */
   handleDeviation(session, deviationDetails) {
     const alert = {
@@ -232,6 +246,9 @@ class GPSMonitoringService {
     
     console.log(`⚠️ ROUTE DEVIATION ALERT for ambulance ${session.ambulanceId}:`, 
       deviationDetails.reasons);
+
+    // Emit deviation alert to control room
+    getIO().to('control-room').emit('deviation_alert', alert);
     
     return alert;
   }
@@ -282,7 +299,9 @@ class GPSMonitoringService {
    * Stop tracking an ambulance
    */
   stopTracking(requestId, finalLocation = null) {
-    const session = this.activeTrackedAmbulances.get(requestId);
+    // ensure consistent key type (string)
+    const key = requestId.toString();
+    const session = this.activeTrackedAmbulances.get(key);
     
     if (!session) {
       return null;
@@ -305,15 +324,18 @@ class GPSMonitoringService {
     console.log(`✅ Stopped GPS tracking for ambulance ${session.ambulanceId}`);
     console.log(`📊 Trip statistics:`, finalStats);
     
-    // Remove from active tracking but keep data for audit
-    this.activeTrackedAmbulances.delete(requestId);
+    // Remove from active tracking
+    this.activeTrackedAmbulances.delete(key);
     
+    // Notify control room that trip has ended
+    getIO().to('control-room').emit('trip_completed', { requestId, ambulanceId: session.ambulanceId });
+
     return {
       session,
       finalStats
     };
   }
-
+  
   /**
    * Calculate final trip statistics
    */
@@ -369,7 +391,8 @@ class GPSMonitoringService {
    * Acknowledge an alert
    */
   acknowledgeAlert(requestId, alertId, acknowledgedBy) {
-    const session = this.activeTrackedAmbulances.get(requestId);
+    const key = requestId.toString();
+    const session = this.activeTrackedAmbulances.get(key);
     
     if (!session) {
       return { success: false, error: 'Session not found' };
@@ -385,6 +408,7 @@ class GPSMonitoringService {
     alert.acknowledgedBy = acknowledgedBy;
     alert.acknowledgedAt = new Date();
     
+    getIO().to('control-room').emit('alert_updated', alert);
     return { success: true, alert };
   }
 
@@ -392,7 +416,8 @@ class GPSMonitoringService {
    * Resolve a deviation alert
    */
   resolveAlert(requestId, alertId, resolution) {
-    const session = this.activeTrackedAmbulances.get(requestId);
+    const key = requestId.toString();
+    const session = this.activeTrackedAmbulances.get(key);
     
     if (!session) {
       return { success: false, error: 'Session not found' };
@@ -408,6 +433,7 @@ class GPSMonitoringService {
     alert.resolvedAt = new Date();
     alert.resolution = resolution;
     
+    getIO().to('control-room').emit('alert_updated', alert);
     return { success: true, alert };
   }
 
@@ -415,7 +441,8 @@ class GPSMonitoringService {
    * Get current tracking status for an ambulance
    */
   getTrackingStatus(requestId) {
-    const session = this.activeTrackedAmbulances.get(requestId);
+    const key = requestId.toString();
+    const session = this.activeTrackedAmbulances.get(key);
     
     if (!session) {
       return null;
@@ -428,7 +455,8 @@ class GPSMonitoringService {
       ambulanceId: session.ambulanceId,
       status: session.status,
       currentLocation,
-      destination: session.destination,
+      destination: session.destination.name,
+      destinationCoords: session.destination,
       expectedArrival: session.expectedArrival,
       activeAlerts: session.deviationAlerts.filter(a => !a.resolved),
       deviationCount: session.deviationAlerts.length,
@@ -443,17 +471,7 @@ class GPSMonitoringService {
     const active = [];
     
     for (const [requestId, session] of this.activeTrackedAmbulances.entries()) {
-      const currentLocation = session.locationHistory[session.locationHistory.length - 1];
-      
-      active.push({
-        requestId,
-        ambulanceId: session.ambulanceId,
-        status: session.status,
-        currentLocation,
-        destination: session.destination,
-        expectedArrival: session.expectedArrival,
-        activeAlerts: session.deviationAlerts.filter(a => !a.resolved).length
-      });
+      active.push(this.getTrackingStatus(requestId));
     }
     
     return active;

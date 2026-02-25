@@ -12,10 +12,13 @@ const express = require('express');
 const router = express.Router();
 const Hospital = require('../models/Hospital');
 const Request = require('../models/Request');
+const Ambulance = require('../models/Ambulance');
+const User = require('../models/User');
 const protect = require('../middleware/auth');
 const { optimizationService } = require('../services/optimizationService');
 const { gpsMonitoringService } = require('../services/gpsMonitoringService');
 const { auditService } = require('../services/auditService');
+const { getIO } = require('../socket/socketInstance');
 
 // @route   POST /api/optimized-routing/calculate
 // @desc    Calculate optimal hospital with privacy controls
@@ -89,10 +92,17 @@ router.post('/calculate', protect, async (req, res) => {
 // @access  Private (Paramedic only)
 router.post('/confirm', protect, async (req, res) => {
   try {
-    const { hospitalId, hospitalName, patientLocation, patientCondition, navigation } = req.body;
+    console.log('Confirm route called by user:', req.user && {
+      id: req.user._id,
+      role: req.user.role,
+      ambulanceId: req.user.ambulanceId,
+      hospitalId: req.user.hospitalId
+    });
+
+    const { hospitalId, patientLocation, patientCondition, navigation } = req.body;
 
     // Validate input
-    if (!hospitalId || !hospitalName) {
+    if (!hospitalId) {
       return res.status(400).json({ error: 'Hospital selection is required' });
     }
 
@@ -102,9 +112,30 @@ router.post('/confirm', protect, async (req, res) => {
       return res.status(404).json({ error: 'Hospital not found' });
     }
 
+    // make sure only a paramedic can call this endpoint
+    if (req.user.role !== 'paramedic') {
+      return res.status(403).json({ error: 'Only paramedics can confirm a hospital' });
+    }
+
+    // ensure paramedic has an ambulance assigned; if not, attempt to auto-assign
+    let ambulanceIdToUse = req.user.ambulanceId;
+    if (!ambulanceIdToUse) {
+      console.warn(`User ${req.user.email} has no ambulanceId, attempting auto-assignment.`);
+      const availableAmb = await Ambulance.findOne({ status: 'available' });
+      if (availableAmb) {
+        ambulanceIdToUse = availableAmb._id;
+        // persist on user record for future calls
+        await User.findByIdAndUpdate(req.user._id, { ambulanceId: ambulanceIdToUse });
+        req.user.ambulanceId = ambulanceIdToUse;
+        console.log(`Auto-assigned ambulance ${availableAmb.licensePlate} to user ${req.user.email}`);
+      } else {
+        return res.status(400).json({ error: 'No ambulance assigned or available for this paramedic' });
+      }
+    }
+
     // Create request record
     const request = await Request.create({
-      ambulanceId: req.user.ambulanceId,
+      ambulance: req.user.ambulanceId,
       paramedic: {
         name: req.user.name,
         phone: req.user.phone
@@ -140,9 +171,9 @@ router.post('/confirm', protect, async (req, res) => {
     );
 
     // Log crew acknowledgment
-    auditService.logCrewAcknowledgment({
+    await auditService.logCrewAcknowledgment({
       requestId: request._id,
-      hospitalName
+      hospitalName: hospital.name
     }, {
       id: req.user._id,
       role: req.user.role,
@@ -150,15 +181,43 @@ router.post('/confirm', protect, async (req, res) => {
       ambulanceId: req.user.ambulanceId
     });
 
+    // notify the paramedic's ambulance socket so UI can show notification
+    try {
+      const io = getIO();
+      io.to(`ambulance-${req.user.ambulanceId}`).emit('hospital-confirmed', {
+        requestId: request._id,
+        hospitalId,
+        hospitalName: hospital.name,
+        eta: navigation?.estimatedTime
+      });
+
+      // also inform hospital directly from server in case paramedic disconnects early
+      io.to(`hospital-${hospitalId}`).emit('incoming-patient', {
+        requestId: request._id,
+        patientAge: patientCondition.age,
+        patientGender: patientCondition.gender,
+        condition: patientCondition.condition,
+        severity: patientCondition.severity,
+        requiredSpecialty: patientCondition.requiredSpecialty,
+        vitals: patientCondition.vitals,
+        eta: navigation?.estimatedTime,
+        ambulanceId: req.user.ambulanceId,
+        paramedicName: req.user.name,
+        paramedicPhone: req.user.phone,
+        ambulanceLocation: patientLocation,
+        timestamp: new Date()
+      });
+    } catch (emitErr) {
+      console.warn('Unable to emit socket events on confirm:', emitErr.message);
+    }
+
     // Return confirmation with tracking info
     res.json({
       success: true,
       requestId: request._id,
       destination: {
         hospitalId,
-        hospitalName: hospitalName,
-        address: hospital.location.address,
-        phone: hospital.contact.emergency
+        // hospitalName and address are intentionally omitted for privacy
       },
       tracking: {
         trackingId: trackingSession.requestId,

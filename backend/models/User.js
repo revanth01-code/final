@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['paramedic', 'hospital-staff', 'admin'],
+    enum: ['paramedic', 'hospital-staff', 'admin', 'control-room'],
     required: true
   },
   phone: {
@@ -35,7 +35,8 @@ const UserSchema = new mongoose.Schema({
     }
   },
   ambulanceId: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ambulance',
     required: function() {
       return this.role === 'paramedic';
     }
