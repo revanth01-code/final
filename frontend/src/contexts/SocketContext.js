@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import io from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { getActiveTracked } from '../services/api';
 
 const SocketContext = createContext();
 
